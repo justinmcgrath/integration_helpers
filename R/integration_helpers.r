@@ -103,7 +103,7 @@ time_reporter = function() {
 # state() - Returns a data frame of the state at every time step that is potentially important to get linearity between times. WARNING: It may contain integration steps that were not acctually used in solving the system.
 
 state_reporter = function() {
-    state_df = list()
+    state_list = list()
     times = numeric()
     state_index = 0L
     highest_index = 0L
@@ -112,7 +112,7 @@ state_reporter = function() {
     rows = 1e5
 
     reset = function() {
-        state_df <<- list()
+        state_list <<- list()
         times <<- numeric()
         state_index <<- 0L
         highest_index <<- 0L
@@ -124,34 +124,31 @@ state_reporter = function() {
 
     update = function(state, time) {
         updated <<- TRUE
-        if (length(state_df) == 0L) {
-            state_df <<- vector('list', rows)
+        if (length(state_list) == 0L) {  # Allocate memory by creating a list of empty elements.
+            state_list <<- vector('list', rows)
             times <<- numeric(rows)
         }
         valid_times = times[seq_len(state_index)]
-        if (suppressWarnings(max(valid_times, na.rm=TRUE)) < time) {
-            state_index <<- state_index + 1L
-        } else {
-            state_index <<- as.integer(min(which(valid_times >= time), na.rm=TRUE))
-        }
+        state_index <<- as.integer(min(c(state_index + 1L, which(valid_times >= time)), na.rm=TRUE))
         if (state_index > highest_index) {
             highest_index <<- state_index
-            if (state_index > rows) {
-                copy = state_df
+            if (state_index > rows) {  # If the amount of data is larger than space in the list, create a new, larger, list and copy everything to it.
+                copy = state_list
                 rows <<- rows * 2
-                state_df <<- vector('list', rows)
-                state_df[seq_len(state_index - 1)] <<- copy
+                state_list <<- vector('list', rows)
+                state_list[seq_len(state_index - 1)] <<- copy
             }
         }
-        state_df[[state_index]] <<- unlist(state)
+        state_list[[state_index]] <<- unlist(state)
         times[state_index] <<- time
         invisible()
     }
 
     state = function() {
+        # It's slow to convert the list to a data frame, so keep a stored copy of the result and return that if update() hasn't been called.
         if (updated) {
-            state_df[seq(state_index + 1L, highest_index + 1L)] <<- list(NULL)
-            state_ <<- as.data.frame(do.call(rbind, state_df[!is.na(state_df)]))
+            state_list[seq(state_index + 1L, highest_index + 1L)] <<- list(NULL)  # When storing values during update(), times that were discarded by the integrater are not removed, so remove them before returning the state.
+            state_ <<- as.data.frame(do.call(rbind, state_list[!is.na(state_list)]))
             updated <<- FALSE
         }
         return (state_)
