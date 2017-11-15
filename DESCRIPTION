@@ -1,0 +1,10 @@
+Package: integration.helpers
+Version: 0.00
+Title: Helper functions for use with ODE integrators
+Description: Helper functions for use with ODE integrators.
+Author: Justin McGrath <jmcgrath@illinois.edu>
+Maintainer: Justin McGrath <jmcgrath@illinois.edu>
+License: GPL-2
+LazyData: true
+ByteCompile: TRUE
+
