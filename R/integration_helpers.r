@@ -96,9 +96,9 @@ time_reporter = function() {
 # Records the state during the integration.
 # Some variable time step integraters use appropriate time steps to ensure the function is linear for any given time step, but then do not report the state at those times: e.g., many solvers in the deSolve package.
 # That is bizarre behavior. This attempts to determine appropriate times to store the state.
-# It is not accurate, so it can be used to determine what the integrater is doing, but the data
+# The reporter can include unused integration steps, so it can be used to determine what the integrater is doing, but the data
 # from it shouldn't be relied on. If you're using a bizarre solver, and you need to data at certain times,
-# you could use this to determine appropriate times, and resolve using those times as input.
+# you could use this to determine appropriate times, and solve the system again using those times as input.
 # In addition to update() and reset() it also provides
 # state() - Returns a data frame of the state at every time step that is potentially important to get linearity between times. WARNING: It may contain integration steps that were not acctually used in solving the system.
 
