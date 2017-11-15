@@ -78,7 +78,7 @@ time_reporter = function() {
     update = function(state, t) {
         counter_ <<- counter_ + 1
         iter_times_[counter_] <<- t
-        if (counter_ - last_update_ > 51) {
+        if (counter_ - last_update_ > 49) {
             setWinProgressBar(pb, value=0, label=sprintf("count: %d, time: %0.2f\n", counter_, t))
             last_update_ <<- counter_
         }
