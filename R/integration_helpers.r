@@ -129,9 +129,13 @@ state_reporter = function() {
             times <<- numeric(rows)
         }
         valid_times = times[seq_len(state_index)]
+
+        # Set state_index to the location with a stored time just larger than the current time.
+        # This effectively erases any stored values with times greater than the current time.
         state_index <<- as.integer(min(c(state_index + 1L, which(valid_times >= time)), na.rm=TRUE))
+
         if (state_index > highest_index) {
-            highest_index <<- state_index
+            highest_index <<- state_index  # Keep track of the higest recorded index, so values discarded by the integrater can be erased.
             if (state_index > rows) {  # If the amount of data is larger than space in the list, create a new, larger, list and copy everything to it.
                 copy = state_list
                 rows <<- rows * 2
