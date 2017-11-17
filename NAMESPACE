@@ -3,3 +3,5 @@ export(combine_reporters)
 export(time_reporter)
 export(state_reporter)
 
+export(autoplot)
+
