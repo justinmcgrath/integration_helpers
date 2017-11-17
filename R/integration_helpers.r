@@ -44,8 +44,21 @@ interpolater = function(df, x_name, method) {
 # During integration, if the integrater does not provide a way to report progress then it is helpful to have the function being integrater report progress as it is called.
 # Here a class is defined that will be called during each step of the integration and can be used to report progress.
 # reporter
+#   reporter(ode_func=NULL) - A constructor that accepts the function the reporter will monitor, or takes no arguments if it will be combined with other reporters.
 #   update(state, t) - Update values in the reporter
 #   reset() - Reset the reporter to its original state.
+#   ode(t, state, parms) - A function to access ode_func().
+#
+# The ode() function must be present exactly like this so that it reporters can be combined.
+#    ode = if(!is.null(ode_func)) {
+#            function(t, state, parms) {
+#                 result = ode_func(t, state, parms)
+#                 update(c(state, parms, result[[2]]), t)
+#                 result
+#            }
+#          } else {
+#              NULL
+#          }
 #
 # Other functions can be provided to access data stored during the integration.
 
@@ -56,7 +69,8 @@ interpolater = function(df, x_name, method) {
 # counter() - Returns the number times the reporter was updated (an integer).
 # iter_times() - Returns the time step at each call of the reporter (a numeric vector, where the index of the vector is the interation step).
 
-time_reporter = function() {
+time_reporter = function(ode_func=NULL) {
+    stopifnot(is.null(ode_func) || is.function(ode_func))
     counter_ = 0L
     last_update_ = counter_
     iter_size_ = 1e6
@@ -89,7 +103,16 @@ time_reporter = function() {
 
     iter_times = function () { iter_times_[!is.na(iter_times_)] }
 
-    return(list(counter=counter, iter_times=iter_times, update=update, reset=reset))
+    ode = if(!is.null(ode_func)) {
+            function(t, state, parms) {
+                result = ode_func(t, state, parms)
+                update(c(state, parms, result[[2]]), t)
+                result
+            }
+          } else {
+              NULL
+          }
+    return(list(ode=ode, counter=counter, iter_times=iter_times, update=update, reset=reset))
 }
 
 # state_reporter
@@ -102,7 +125,8 @@ time_reporter = function() {
 # In addition to update() and reset() it also provides
 # state() - Returns a data frame of the state at every time step that is potentially important to get linearity between times. WARNING: It may contain integration steps that were not acctually used in solving the system.
 
-state_reporter = function() {
+state_reporter = function(ode_func=NULL) {
+    stopifnot(is.null(ode_func) || is.function(ode_func))
     state_list = list()
     times = numeric()
     state_index = 0L
@@ -158,7 +182,17 @@ state_reporter = function() {
         return (state_)
     }
 
-    return(list(reset=reset, update=update, state=state))
+    ode = if(!is.null(ode_func)) {
+            function(t, state, parms) {
+                result = ode_func(t, state, parms)
+                update(c(state, parms, result[[2]]), t)
+                result
+            }
+          } else {
+              NULL
+          }
+
+    return(list(ode=ode, reset=reset, update=update, state=state))
 }
 
 # combine_reporters
@@ -173,12 +207,14 @@ state_reporter = function() {
 # combo_reporter = combine_reporters(list(state_reporter(), state_reporter()))
 # combo_reproter$state() - Both state reporters has this function, and a list of two data frames is returned.
 
-combine_reporters = function(x) {
-    stopifnot(is.list(x))
-    stopifnot(is.function(x[[1]][[1]]))
+combine_reporters = function(reporter_list, ode_func) {
+    stopifnot(is.list(reporter_list))
+    stopifnot(is.function(reporter_list[[1]][['update']]))
     functions = list()
 
-    for (reporter in x) {
+    stopifnot(is.function(ode_func))
+
+    for (reporter in reporter_list) {
         for (func_name in names(reporter)) {
             functions[[func_name]][length(functions[[func_name]]) + 1] = reporter[func_name]
         }
@@ -204,6 +240,13 @@ combine_reporters = function(x) {
         func_calls[[func_name]] = caller(func_name)
     }
 
+    # The ode() function is special in that it should only ever be called once for each reporter.
+    # Run ode() once, and use its result to update all the reporters.
+    func_calls$ode = function(t, state, parms) {
+        result = ode_func(t, state, parms)
+        func_calls$update(c(state, parms, result[[2]]), t)
+        result
+    }
     return (func_calls)
 }
 
