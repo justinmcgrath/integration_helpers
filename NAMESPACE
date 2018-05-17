@@ -4,4 +4,5 @@ export(time_reporter)
 export(state_reporter)
 
 export(autoplot)
+export(chi_difference)
 
