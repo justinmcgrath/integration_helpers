@@ -23,7 +23,11 @@ interpolater = function(df, x_name, method) {
     not_time_columns = setdiff(names(df), x_name)
 
     for (col_name in not_time_columns) {
-        func_list[[col_name]] = method(times, df[[col_name]])
+        if (sum(!is.na(df[[col_name]])) >= 2) {
+            func_list[[col_name]] = method(times, df[[col_name]])
+        } else {
+            func_list[[col_name]] = function(x) return(NA)
+        }
     }
 
     result = vector('list', n_col)
@@ -61,6 +65,7 @@ chi_difference = function(observed_df, x_name, predicted_df) {
             obs_y = observed_df[[y]] 
             undefined_ind = pred_y == 0 & obs_y == 0
             ss_y = abs(sum(((obs_y - pred_y)^2 / pred_y)[!undefined_ind], na.rm=TRUE))  # Chi squared should always be positive, but it's possible for pred_y to be negative.
+            if (any(is.na(pred_y))) ss_y = Inf
             ss = ss + ss_y
         }
         return (ss)
