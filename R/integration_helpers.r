@@ -55,6 +55,8 @@ interpolater = function(df, x_name, method) {
 # The sum of squares is calculated for columns with the same names in observed_df and predicted_df, except for the x_name column.
 
 chi_difference = function(observed_df, x_name, predicted_df) {
+        if (!x_name %in% names(observed_df)) stop(paste(x_name, 'must be in observed_df'))
+        if (!x_name %in% names(predicted_df)) stop(paste(x_name, 'must be in predicted'))
         y_names = setdiff(intersect(names(observed_df), names(predicted_df)), x_name)
         i_result = interpolater(predicted_df[c(y_names, x_name)], x_name, approxfun)
 
